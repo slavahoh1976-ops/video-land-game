@@ -1,0 +1,165 @@
+name: Сборка для Windows и Mac
+
+# Собирает приложение «Экран» (Electron 26 — последняя версия, работающая на macOS 10.14 Mojave)
+# и выкладывает в Releases: Mac (Intel и Apple Silicon), Windows (установщик и переносная версия)
+# и общий архив со всеми версиями и исходниками.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'test-*']
+    paths:
+      - "app/**"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Версия = версия программы
+        working-directory: app
+        shell: bash
+        run: node -e "const f='package.json',p=require('./'+f);p.version=require('fs').readFileSync('web/version.txt','utf8').trim();require('fs').writeFileSync(f,JSON.stringify(p,null,2));console.log('версия',p.version)"
+      - name: Зависимости
+        working-directory: app
+        run: npm install --no-audit --no-fund
+      - name: Сборка (Intel и Apple Silicon)
+        working-directory: app
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --mac --x64 --arm64 --publish never
+      - name: Подпись (ad-hoc) и архивы
+        working-directory: app/dist
+        run: |
+          set -e
+          ls -la
+          for d in mac mac-arm64; do
+            APP=$(ls -d "$d"/*.app | head -1)
+            codesign --force --deep --sign - "$APP"
+            codesign --verify --deep --strict "$APP" && echo "подпись OK: $APP"
+          done
+          V=$(cat ../web/version.txt); ditto -c -k --sequesterRsrc --keepParent "$(ls -d mac/*.app | head -1)" ../../Ekran-Mac-Intel-$V.zip
+          ditto -c -k --sequesterRsrc --keepParent "$(ls -d mac-arm64/*.app | head -1)" ../../Ekran-Mac-AppleSilicon-$V.zip
+          if unzip -Z1 ../../Ekran-Mac-Intel-$V.zip | LC_ALL=C grep -q '[^ -~]'; then echo "В архиве есть не-латинские имена файлов"; exit 1; fi
+          plutil -p "$(ls -d mac/*.app | head -1)/Contents/Info.plist" | grep -E "LSMinimumSystemVersion|CFBundleShortVersion|CFBundleDisplayName|CFBundleExecutable"
+      - name: Проверка запуска (Apple Silicon и Intel через Rosetta)
+        working-directory: app/dist
+        run: |
+          set +e
+          EKRAN_SMOKE=1 ./mac-arm64/Ekran.app/Contents/MacOS/Ekran > arm.log 2>&1; A=$?
+          grep -E "SMOKE|Check failed|FATAL" arm.log; echo "arm64 код выхода: $A"
+          EKRAN_SMOKE=1 arch -x86_64 ./mac/Ekran.app/Contents/MacOS/Ekran > x64.log 2>&1; X=$?
+          grep -E "SMOKE|Check failed|FATAL" x64.log; echo "x64 код выхода: $X"
+          [ $A -eq 0 ] && [ $X -eq 0 ] && grep -q "SMOKE: OK" arm.log && grep -q "SMOKE: OK" x64.log || { echo "Программа не запустилась — сборка остановлена"; exit 1; }
+      - name: Проверка самообновления (приложение ставит предыдущую версию поверх себя)
+        continue-on-error: true
+        working-directory: app/dist
+        run: |
+          PREV=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+          echo "предыдущая версия: $PREV"
+          T="$RUNNER_TEMP/Apps"; mkdir -p "$T"; ditto ./mac-arm64/Ekran.app "$T/Ekran.app"
+          EKRAN_UPDTEST=$PREV perl -e 'alarm 300; exec @ARGV' "$T/Ekran.app/Contents/MacOS/Ekran" > upd.log 2>&1; echo "код выхода $?"; grep -E "UPDTEST|rror" upd.log | head -30
+          for i in $(seq 1 60); do plutil -p "$T/Ekran.app/Contents/Info.plist" 2>/dev/null | grep -q "\"CFBundleShortVersionString\" => \"$PREV\"" && break; sleep 1; done
+          plutil -p "$T/Ekran.app/Contents/Info.plist" | grep CFBundleShortVersionString
+          sleep 8; pgrep -fl "$T/Ekran.app" && echo "новая версия запустилась"; pkill -f "$T/Ekran.app"
+          plutil -p "$T/Ekran.app/Contents/Info.plist" | grep -q "\"$PREV\"" && echo "UPDATE MAC OK" || { echo "UPDATE MAC FAIL"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: Ekran-Mac-*.zip
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Версия = версия программы
+        working-directory: app
+        shell: bash
+        run: node -e "const f='package.json',p=require('./'+f);p.version=require('fs').readFileSync('web/version.txt','utf8').trim();require('fs').writeFileSync(f,JSON.stringify(p,null,2));console.log('версия',p.version)"
+      - name: Зависимости
+        working-directory: app
+        run: npm install --no-audit --no-fund
+      - name: Сборка
+        working-directory: app
+        run: npx electron-builder --win --x64 --publish never
+      - name: Файлы
+        shell: bash
+        run: |
+          ls -la app/dist
+          cp app/dist/Ekran-Windows-Setup-*.exe app/dist/Ekran-Windows-Portable-*.exe .
+      - name: Проверка самообновления (установить, затем приложение ставит предыдущую версию поверх себя)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $prev = (Invoke-RestMethod https://api.github.com/repos/${{ github.repository }}/releases/latest).tag_name.TrimStart('v')
+          "предыдущая версия: $prev"
+          $setup = Get-ChildItem Ekran-Windows-Setup-*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList '/S' -Wait
+          Get-ItemProperty HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Ekran|Экран' } | Format-List DisplayName, DisplayVersion, InstallLocation
+          $exe = (Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter Ekran.exe -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          function inst { [pscustomobject]@{ DisplayVersion = (Get-Item $exe).VersionInfo.ProductVersion; InstallLocation = (Split-Path $exe) } }
+          $i = inst; "установлено: $($i.DisplayVersion) в $($i.InstallLocation)"
+          $env:EKRAN_UPDTEST = $prev
+          $p = Start-Process (Join-Path $i.InstallLocation 'Ekran.exe') -PassThru -RedirectStandardOutput upd.log
+          $p.WaitForExit(240000) | Out-Null; Get-Content upd.log
+          Remove-Item Env:EKRAN_UPDTEST
+          for ($k = 0; $k -lt 90; $k++) { if ((inst).DisplayVersion -like "$prev*") { break }; Start-Sleep 2 }
+          $i = inst; "после обновления: $($i.DisplayVersion)"
+          Start-Sleep 8; Get-Process Ekran -ErrorAction SilentlyContinue | Format-Table Id, Path; Get-Process Ekran -ErrorAction SilentlyContinue | Stop-Process -Force
+          if ($i.DisplayVersion -like "$prev*") { "UPDATE WIN OK" } else { "UPDATE WIN FAIL"; exit 1 }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: Ekran-Windows-*.exe
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Общий архив
+        run: |
+          set -e
+          WEB=$(cat app/web/version.txt); SHELLV=$(node -p "require('./app/package.json').version")
+          echo "WEB=$WEB" >> $GITHUB_ENV; echo "SHELLV=$SHELLV" >> $GITHUB_ENV
+          mkdir -p pack/"Ekran-$WEB"
+          cp out/* pack/"Ekran-$WEB"/
+          cp app/web/index.html pack/"Ekran-$WEB"/Ekran-web-$WEB.html
+          git archive --format=zip -o pack/"Ekran-$WEB"/source-$WEB.zip HEAD
+          cp README.md pack/"Ekran-$WEB"/README.md
+          (cd pack && zip -qr ../Ekran-All-$WEB.zip "Ekran-$WEB")
+          ls -la out Ekran-All-$WEB.zip
+      - name: Публикация в Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$WEB"
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" out/* Ekran-All-$WEB.zip \
+            --title "Экран $WEB (приложение $SHELLV)" \
+            --notes-file NOTES.md \
+            --target "$GITHUB_SHA" --latest
+
+  log:
+    needs: [mac, windows, release]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ссылка на лог
+        run: echo "Сборка не удалась — смотрите логи задач mac / windows / release"

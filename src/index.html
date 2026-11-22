@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{APP_NAME}} — {{APP_TAG}}</title>
+<style>/*CSS*/</style>
+</head>
+<body class="{{BODY}}">
+<div id="app">
+  <header id="top">
+    <div class="brand">{{ICON}}<b class="appName">{{APP_NAME}}</b><span id="appVer" class="ver" data-cmd="about" title="Версия программы — что нового"></span><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
+
+    <div class="menus">
+      <div class="menu"><button>Файл</button><div class="dd">
+        <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr><a data-cmd="backupAll">Резервная копия всего (схема + база + настройки)</a><a data-cmd="restoreAll">Восстановить из резервной копии…</a><hr>
+        <!--V--><a data-cmd="exportPNG">Экспорт PNG</a><a data-cmd="exportSVG">Экспорт SVG</a><!--/V--><a data-cmd="print">Печать / PDF <kbd>Ctrl+P</kbd></a><hr>
+        <!--L--><a data-cmd="calc">Калькуляция проекта…</a><!--/L--><!--V--><a data-cmd="cables">Кабельный журнал (CSV)</a><a data-cmd="bom">Спецификация оборудования (CSV)</a><hr>
+        <a data-cmd="demo">Открыть пример (с портами)</a><a data-cmd="photoDemo">Открыть пример из ваших фото</a><a data-cmd="stress">Тест нагрузки (1000 устройств)</a><!--/V-->
+      </div></div>
+      <div class="menu"><button>Правка</button><div class="dd">
+        <a data-cmd="undo">Отменить <kbd>Ctrl+Z</kbd></a><a data-cmd="redo">Повторить <kbd>Ctrl+Y</kbd></a><hr>
+        <a data-cmd="copy">Копировать <kbd>Ctrl+C</kbd></a><a data-cmd="paste">Вставить <kbd>Ctrl+V</kbd></a><a data-cmd="dup">Дублировать <kbd>Ctrl+D</kbd></a><a data-cmd="del">Удалить <kbd>Del</kbd></a><hr>
+        <a data-cmd="selAll">Выделить всё <kbd>Ctrl+A</kbd></a><a data-cmd="find">Найти на схеме <kbd>Ctrl+F</kbd></a><a data-cmd="renumber">Перенумеровать кабели</a>
+      </div></div>
+      <div class="menu"><button>Вставка</button><div class="dd">
+        <a data-cmd="quick">Устройство… <kbd>A / двойной клик</kbd></a><a data-cmd="addFrame">Зона (помещение/рэк) <kbd>Z</kbd></a><a data-cmd="addText">Текст <kbd>T</kbd></a><hr>
+        <a data-cmd="newDevice">Создать своё устройство (с фото)…</a><a data-cmd="baseManager">База устройств — редактировать / удалить…</a><a data-cmd="libExport">Экспорт моей базы…</a><a data-cmd="libImport">Импорт базы…</a><a data-cmd="libDefault">Загрузить базу с фото (по умолчанию)</a>
+      </div></div>
+      <div class="menu"><button>Вид</button><div class="dd">
+        <a data-cmd="viewPorts">Режим: блоки с портами</a><a data-cmd="viewPic">Режим: картинки (как draw.io)</a><hr><a data-cmd="fit">Показать всё <kbd>F</kbd></a><a data-cmd="zoom100">Масштаб 100% <kbd>Ctrl+0</kbd></a><hr>
+        <a data-cmd="toggleGrid">Сетка и привязка</a><a data-cmd="toggleLegend">Легенда и штамп на схеме</a><a data-cmd="toggleLabels">Подписи кабелей</a><a data-cmd="picLabel">Подпись под картинкой: название / номер / оба</a><a data-cmd="theme">Тёмная / светлая тема</a><hr>
+        <a data-cmd="wire:orth">Кабели: ортогональные</a><a data-cmd="wire:curve">Кабели: кривые</a><a data-cmd="wire:line">Кабели: прямые</a>
+      </div></div>
+      <div class="menu"><button>Проверка</button><div class="dd">
+        <a data-cmd="check">Проверить схему</a><a data-cmd="cablesView">Кабельный журнал</a><a data-cmd="bomView">Спецификация</a>
+      </div></div>
+      <div class="menu"><button>Помощь</button><div class="dd"><!--V--><a data-cmd="help">Горячие клавиши и приёмы</a><!--/V--><a href="{{SITE}}download/" target="_blank" rel="noopener">⇩ Скачать для Windows и Mac</a><a data-cmd="about">О программе и что нового</a></div></div>
+    </div>
+    <div id="saveState" class="ok">Сохранено</div><button id="verBtn" class="verbtn" title="Версия программы — проверить обновления"></button>
+    <div class="tools">
+      <div class="seg"><button data-cmd="viewPorts" title="Блоки с портами">▤ С портами</button><button data-cmd="viewPic" title="Картинки, как в draw.io">🖼 Картинки</button></div>
+      <span class="sep"></span>
+      <button data-cmd="undo" title="Отменить (Ctrl+Z)">↶</button><button data-cmd="redo" title="Повторить (Ctrl+Y)">↷</button>
+      <span class="sep"></span>
+      <button data-cmd="zoomOut" title="Уменьшить">−</button><button id="zoomLbl" data-cmd="fit" title="Показать всё (F)">100%</button><button data-cmd="zoomIn" title="Увеличить">+</button>
+      <span class="sep"></span>
+      <select id="wireStyle" title="Стиль кабелей"><option value="orth">┐ Ортогональные</option><option value="curve">∿ Кривые</option><option value="line">／ Прямые</option></select>
+      <button data-cmd="check" title="Проверить схему">✓ Проверка</button>
+      <button data-cmd="cablesView" title="Кабельный журнал">☰ Кабели</button>
+      <input id="findBox" placeholder="Найти на схеме…" title="Ctrl+F">
+    </div>
+  </header>
+
+  <aside id="lib"><div id="libResize" title="Потяните, чтобы изменить ширину · двойной клик — по умолчанию"></div>
+    <div class="libHead"><input id="libSearch" placeholder="Поиск: atem, sdi>hdmi, novastar…" spellcheck="false"><div style="display:flex;align-items:center;gap:6px;margin-top:6px"><label class="small muted" style="display:flex;gap:5px;align-items:center;flex:1"><input type="checkbox" id="libBuiltin"> Показывать встроенную базу (типовые модели)</label><span class="libView"><button data-libview="list" title="Список">☰</button><button data-libview="grid" title="Значки — при наведении предпросмотр">▦</button></span></div></div>
+    <div id="libTypeFilter"></div>
+    <div id="libList"></div>
+    <div class="libFoot"><button data-cmd="newDevice" title="Новое устройство">＋ Устройство</button><button data-cmd="newGroup" title="Новая группа">＋ Группа</button><button data-cmd="baseManager" title="Редактировать и удалять устройства">✎ Редактор</button><button data-cmd="libExport" title="Сохранить вашу базу в файл">⇩ Экспорт</button><button data-cmd="libImport" title="Загрузить базу из файла">⇧ Импорт</button></div>
+  </aside>
+
+  <main id="stage">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+      <defs id="defs"></defs>
+      <g id="vp">
+        <g id="Lframes"></g><g id="Ledges"></g><g id="Lhover"></g><g id="Lnodes"></g><g id="Ltexts"></g><g id="Lextra"></g><g id="Lover"></g>
+      </g>
+    </svg>
+    <div id="marquee"></div>
+    <div id="hint"></div>
+  </main>
+
+  <aside id="props"></aside>
+
+<!--L-->  <section id="ledWrap">
+    <aside id="ledLeft">
+      <div class="lhead"><b>Экраны</b><span><button id="lScrAdd" title="Новый экран">＋</button><button id="lScrDup" title="Копия экрана">⧉</button><button id="lScrRen" title="Переименовать">✎</button><button id="lScrDel" title="Удалить экран">✕</button></span></div>
+      <div id="ledScreens"></div>
+      <div id="ledGridBox">
+        <div class="lgr"><span>Тип кабинета</span><select id="gType"></select></div>
+        <div class="lgr"><span>Пиксели кабинета</span><input type="number" id="gWpx" min="1"><i>×</i><input type="number" id="gHpx" min="1"><i>px</i></div>
+        <div class="lgr"><span>Кабинеты</span><button class="lst" data-gs="c-">−</button><input type="number" id="gCols" min="1" max="200"><button class="lst" data-gs="c+">+</button><i>×</i><button class="lst" data-gs="r-">−</button><input type="number" id="gRows" min="1" max="200"><button class="lst" data-gs="r+">+</button></div>
+        <div class="lgr"><span>Размер</span><input type="number" id="gWm" step="0.01" min="0"><i>×</i><input type="number" id="gHm" step="0.01" min="0"><i>м</i></div>
+        <div class="small muted" id="gInfo2"></div>
+      </div>
+      <div class="lhead"><b>Кабинеты</b><span><button id="lCabNew" title="Свой кабинет">＋ Свой</button></span></div>
+      <input id="ledCabSearch" placeholder="Поиск: 2.6, 500x1000, уличный…" spellcheck="false">
+      <div id="ledCabList"></div>
+      <div class="lfoot"><button id="lGrid">＋ Добавить кабинеты снизу / справа…</button><div class="small muted">Щелчок по кабинету в списке — экран из этих кабинетов. Перетащите кабинет на поле, чтобы поставить отдельно.</div></div>
+    </aside>
+    <div id="ledMid">
+      <div id="ledSteps"></div>
+      <div id="ledBar">
+        <span class="lgroup"><button data-lmode="sel" title="Выбор и перемещение (V)">⬚ Выбор</button><button data-lmode="wire" title="Проводка мышью (W): в окне «Сигнал» — порт, в окне «Питание» — линия">⇢ Проводка</button><button data-lmode="quick" title="Быстрое подключение (Q): выберите узор и обведите область рамкой, как Quick connection в NovaLCT">▦ Быстро</button></span>
+        <span class="lgroup" id="lQuick" style="display:none"></span>
+        <span class="lgroup"><button id="lFull" title="Лист во весь экран — спрятать боковые панели">⛶ Лист</button><button id="lRear" title="Ракурс: вид спереди или сзади (монтаж) — сзади зеркально">◨ вид спереди</button><button id="lMap" title="Подписи как Mapping в NovaLCT: порт и номер кабинета">P:01 #001</button><button id="lLines" title="Показать / скрыть линии связи">⤳ линии</button></span>
+        <span class="lgroup"><button id="lSplitDir" title="Окна рядом или одно над другим">◫ окна</button></span>
+        <span class="lgroup"><button id="lReset" title="Сброс: прописка, питание или весь экран">⟲ Сброс</button><button id="lUndo" title="Отменить (Ctrl+Z)">↶</button><button id="lRedo" title="Вернуть (Ctrl+Y)">↷</button><button id="lFit" title="Показать всё (F)">⤢</button></span>
+        <span class="lgroup"><button id="lPNG">PNG</button><button id="lSVG">SVG</button><button id="lCSV">CSV</button><button id="lNLCT" title="Файл .scr для NovaLCT (Screen Connection → Load from File), инструкция и координаты">Для NovaLCT (.scr)</button><button id="lCalc" class="pri" title="Полная калькуляция проекта: все экраны, кабели, питание, оборудование видеосхемы">Калькуляция</button></span>
+      </div>
+      <div id="ledHead"></div>
+      <style id="lhov"></style><div id="ledStage"><div id="ledTip"></div>
+        <div class="lpane" data-v="data"><div class="lpTitle" id="lpTitleD">Сигнал — порты</div><svg class="lsvg" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="lhatch" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="16" fill="#7f1d1d" fill-opacity=".55"/></pattern><marker id="la" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="2.6" markerHeight="2.6" orient="auto"><path d="M1,1 L9,5 L1,9 z" fill="#111827" stroke="#fff" stroke-width="1"/></marker></defs><g class="lvp"></g></svg><div class="lband"></div></div>
+        <div class="lpane" data-v="power"><div class="lpTitle" id="lpTitleP">Питание — линии</div><svg class="lsvg" xmlns="http://www.w3.org/2000/svg"><g class="lvp"></g></svg><div class="lband"></div></div>
+        </div>
+      <div id="ledCards"></div>
+      <div id="ledStatus"><span id="ledStatusL"></span><span id="ledHint"></span></div>
+    </div>
+    <aside id="ledProps"></aside>
+  </section><!--/L-->
+
+  <footer id="bottom">
+    <div id="pages"></div>
+    <div id="status"></div>
+  </footer>
+</div>
+
+<div id="shapesPop" class="pop hidden"><div class="shGrid"></div><div class="small muted" style="padding:4px 6px 2px">Клик — добавить · можно перетащить на схему</div></div>
+<div id="quick" class="pop hidden"><div id="quickShapes" class="shGrid"></div><input id="quickIn" placeholder="Начните вводить модель или тип…" spellcheck="false"><div id="quickList"></div></div>
+<div id="ctx" class="pop hidden"></div>
+<div id="modal" class="hidden"><div class="mbox"><div class="mhead"><b id="mTitle"></b><button id="mClose">✕</button></div><div id="mBody"></div></div></div>
+<div id="toast"></div>
+<input type="file" id="fileIn" accept=".json,.vsf" hidden>
+<input type="file" id="libIn" accept=".json" hidden>
+<script>/*SF_EMBED*/
+/*JS*/</script>
+</body>
+</html>

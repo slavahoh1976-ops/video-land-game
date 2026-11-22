@@ -1,0 +1,63 @@
+{
+  "name": "ekran-desktop",
+  "productName": "Ekran",
+  "version": "1.0.0",
+  "description": "Экран — коммутация и питание LED-экранов",
+  "author": "Khokhryakov Viatcheslav",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "26.6.10",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "ru.slavahoh.ekran",
+    "productName": "Ekran",
+    "copyright": "© 2026 Khokhryakov Viatcheslav",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "web/**"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dir"
+      ],
+      "identity": null,
+      "minimumSystemVersion": "10.14.0",
+      "artifactName": "Ekran-Mac-${arch}.${ext}",
+      "extendInfo": {
+        "CFBundleDisplayName": "Экран"
+      }
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "Ekran-Windows-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Экран",
+      "artifactName": "Ekran-Windows-Setup-${version}.${ext}",
+      "uninstallDisplayName": "Экран ${version}"
+    },
+    "portable": {
+      "artifactName": "Ekran-Windows-Portable-${version}.${ext}"
+    }
+  }
+}
